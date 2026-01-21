@@ -1,0 +1,36 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "ADF-sina"
+		},
+		"LS_to_DB_password": {
+			"value": ""
+		},
+		"LS_to_datalake_accountKey": {
+			"value": ""
+		},
+		"LS_to_DB_properties_typeProperties_server": {
+			"value": "server-sk-test.database.windows.net"
+		},
+		"LS_to_DB_properties_typeProperties_database": {
+			"value": "database-test"
+		},
+		"LS_to_DB_properties_typeProperties_userName": {
+			"value": "kashani"
+		},
+		"LS_to_datalake_properties_typeProperties_url": {
+			"value": "https://storagedatafactorysina.dfs.core.windows.net/"
+		},
+		"RestService1_properties_typeProperties_url": {
+			"value": "https://pokeapi.co/api/v2/pokemon"
+		},
+		"trigger1_properties_Schedule_parameters_schema": {
+			"value": "source"
+		},
+		"trigger1_properties_Schedule_parameters_table": {
+			"value": "Orders"
+		}
+	}
+}
