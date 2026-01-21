@@ -1,0 +1,9 @@
+{
+	"name": "ADF-sina",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "557cd35d-fdf5-4ecb-ad73-a3e80c93a94e",
+		"tenantId": "a1ea8a90-1070-4535-8b4f-6c1e4471c282"
+	}
+}
