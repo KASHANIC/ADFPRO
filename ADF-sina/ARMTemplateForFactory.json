@@ -49,6 +49,59 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/DeltaLake')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DeltaFlow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow1",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {
+										"p_container": "source",
+										"p_directorie": "dataflow",
+										"p_file": "products.csv"
+									},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "None",
+							"cacheSinks": {
+								"firstRowOnly": true
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow1')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Ingestion')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -56,6 +109,7 @@
 				"activities": [
 					{
 						"name": "last_cdc",
+						"description": "We are looking in a json file to look up for the last cdc",
 						"type": "Lookup",
 						"dependsOn": [],
 						"policy": {
@@ -79,7 +133,7 @@
 								}
 							},
 							"dataset": {
-								"referenceName": "Json1",
+								"referenceName": "ds_cdc",
 								"type": "DatasetReference",
 								"parameters": {}
 							},
@@ -88,6 +142,7 @@
 					},
 					{
 						"name": "Totalresults",
+						"description": "Here we look into our SQL database to see if how many columns are above that number. ",
 						"type": "Script",
 						"dependsOn": [
 							{
@@ -124,6 +179,7 @@
 					},
 					{
 						"name": "If_New_Rows",
+						"description": "First we compare the number the number of the count, if it's above 0 we proceed with the if",
 						"type": "IfCondition",
 						"dependsOn": [
 							{
@@ -142,6 +198,7 @@
 							"ifTrueActivities": [
 								{
 									"name": "load",
+									"description": "We load all the fresh data from SQL server into a parquet file. ",
 									"type": "Copy",
 									"dependsOn": [],
 									"policy": {
@@ -198,6 +255,7 @@
 								},
 								{
 									"name": "maxCDC",
+									"description": "Here we look for the latest timestamp of the column",
 									"type": "Script",
 									"dependsOn": [
 										{
@@ -234,6 +292,7 @@
 								},
 								{
 									"name": "Copy data1",
+									"description": "The source is basically created by us. We take a empty json, we create our own dict and we than sink into our first file.",
 									"type": "Copy",
 									"dependsOn": [
 										{
@@ -323,7 +382,7 @@
 				"lastPublishTime": "2026-01-16T21:24:25Z"
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/Json1')]",
+				"[concat(variables('factoryId'), '/datasets/ds_cdc')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_to_DB')]",
 				"[concat(variables('factoryId'), '/datasets/AzureSqlTable1')]",
 				"[concat(variables('factoryId'), '/datasets/Parquet1')]",
@@ -1460,38 +1519,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Json1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_to_datalake",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "Json",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "cdc.json",
-						"folderPath": "monitor",
-						"fileSystem": "source"
-					}
-				},
-				"schema": {
-					"type": "object",
-					"properties": {
-						"cdc_timestamp": {
-							"type": "string"
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_to_datalake')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Json2')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1562,6 +1589,38 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/RestService1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_cdc')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_to_datalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "cdc.json",
+						"folderPath": "monitor",
+						"fileSystem": "source"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"cdc_timestamp": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_to_datalake')]"
 			]
 		},
 		{
@@ -1845,59 +1904,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/DeltaLake')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "DeltaFlow",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "dataflow1",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"source1": {
-										"p_container": "source",
-										"p_directorie": "dataflow",
-										"p_file": "products.csv"
-									},
-									"sink1": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "None",
-							"cacheSinks": {
-								"firstRowOnly": true
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/dataflow1')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/dataflow1')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -1944,7 +1950,7 @@
 						"     validateSchema: false,",
 						"     ignoreNoFilesFound: false) ~> source1",
 						"source1 derive(category = upper(category)) ~> derivedColumn1",
-						"select1 alterRow(upsertIf(1 == 1)) ~> alterRow1",
+						"select1 alterRow(upsertIf(1==1)) ~> alterRow1",
 						"derivedColumn1 select(mapColumn(",
 						"          product_id,",
 						"          product_name,",
@@ -1976,6 +1982,31 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/ds_csv_dyn')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_to_datalake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Json_cdc_2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_to_datalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "cdc.json",
+						"folderPath": "monitor",
+						"fileSystem": "source"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_to_datalake')]"
 			]
 		}

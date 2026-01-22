@@ -136,38 +136,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Json1')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "LS_to_datalake",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "Json",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "cdc.json",
-						"folderPath": "monitor",
-						"fileSystem": "source"
-					}
-				},
-				"schema": {
-					"type": "object",
-					"properties": {
-						"cdc_timestamp": {
-							"type": "string"
-						}
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/LS_to_datalake')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/Json2')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -238,6 +206,38 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/RestService1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_cdc')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_to_datalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "cdc.json",
+						"folderPath": "monitor",
+						"fileSystem": "source"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"cdc_timestamp": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_to_datalake')]"
 			]
 		},
 		{
@@ -434,6 +434,31 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Json_cdc_2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_to_datalake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "cdc.json",
+						"folderPath": "monitor",
+						"fileSystem": "source"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_to_datalake')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/Ingestion')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -441,6 +466,7 @@
 				"activities": [
 					{
 						"name": "last_cdc",
+						"description": "We are looking in a json file to look up for the last cdc",
 						"type": "Lookup",
 						"dependsOn": [],
 						"policy": {
@@ -464,7 +490,7 @@
 								}
 							},
 							"dataset": {
-								"referenceName": "Json1",
+								"referenceName": "ds_cdc",
 								"type": "DatasetReference",
 								"parameters": {}
 							},
@@ -473,6 +499,7 @@
 					},
 					{
 						"name": "Totalresults",
+						"description": "Here we look into our SQL database to see if how many columns are above that number. ",
 						"type": "Script",
 						"dependsOn": [
 							{
@@ -509,6 +536,7 @@
 					},
 					{
 						"name": "If_New_Rows",
+						"description": "First we compare the number the number of the count, if it's above 0 we proceed with the if",
 						"type": "IfCondition",
 						"dependsOn": [
 							{
@@ -527,6 +555,7 @@
 							"ifTrueActivities": [
 								{
 									"name": "load",
+									"description": "We load all the fresh data from SQL server into a parquet file. ",
 									"type": "Copy",
 									"dependsOn": [],
 									"policy": {
@@ -583,6 +612,7 @@
 								},
 								{
 									"name": "maxCDC",
+									"description": "Here we look for the latest timestamp of the column",
 									"type": "Script",
 									"dependsOn": [
 										{
@@ -619,6 +649,7 @@
 								},
 								{
 									"name": "Copy data1",
+									"description": "The source is basically created by us. We take a empty json, we create our own dict and we than sink into our first file.",
 									"type": "Copy",
 									"dependsOn": [
 										{
@@ -708,7 +739,7 @@
 				"lastPublishTime": "2026-01-16T21:24:25Z"
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/Json1')]",
+				"[concat(variables('factoryId'), '/datasets/ds_cdc')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_to_DB')]",
 				"[concat(variables('factoryId'), '/datasets/AzureSqlTable1')]",
 				"[concat(variables('factoryId'), '/datasets/Parquet1')]",
@@ -1759,7 +1790,7 @@
 						"     validateSchema: false,",
 						"     ignoreNoFilesFound: false) ~> source1",
 						"source1 derive(category = upper(category)) ~> derivedColumn1",
-						"select1 alterRow(upsertIf(1 == 1)) ~> alterRow1",
+						"select1 alterRow(upsertIf(1==1)) ~> alterRow1",
 						"derivedColumn1 select(mapColumn(",
 						"          product_id,",
 						"          product_name,",
@@ -1792,97 +1823,6 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/ds_csv_dyn')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_to_datalake')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/Schedule')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Execute Pipeline1",
-						"type": "ExecutePipeline",
-						"dependsOn": [],
-						"policy": {
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"pipeline": {
-								"referenceName": "Ingestion",
-								"type": "PipelineReference"
-							},
-							"waitOnCompletion": true,
-							"parameters": {
-								"schema": {
-									"value": "@pipeline().parameters.schema",
-									"type": "Expression"
-								},
-								"table": {
-									"value": "@pipeline().parameters.table",
-									"type": "Expression"
-								},
-								"backdate": {
-									"value": "@pipeline().parameters.backdate",
-									"type": "Expression"
-								}
-							}
-						}
-					},
-					{
-						"name": "Alerts",
-						"type": "WebActivity",
-						"dependsOn": [
-							{
-								"activity": "Execute Pipeline1",
-								"dependencyConditions": [
-									"Failed",
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"method": "POST",
-							"headers": {},
-							"url": "https://prod-35.eastus2.logic.azure.com:443/workflows/3d5980fbffc241fa83e146639ad6a2c8/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=QIf2L2rlmOZ_I-k7d6YZnKvJUdgFxX9YH30sM_27HbE",
-							"body": {
-								"value": "{\n    \"Pipeline_name\": \"@{pipeline().Pipeline}\",\n    \"Pipeline_runId\" : \"@{pipeline().RunId}\"\n}",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"schema": {
-						"type": "string",
-						"defaultValue": "source"
-					},
-					"table": {
-						"type": "string",
-						"defaultValue": "Orders"
-					},
-					"backdate": {
-						"type": "string",
-						"defaultValue": "1925-10-10"
-					}
-				},
-				"annotations": [],
-				"lastPublishTime": "2026-01-18T16:12:33Z"
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/Ingestion')]"
 			]
 		},
 		{
