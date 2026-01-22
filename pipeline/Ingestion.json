@@ -27,7 +27,7 @@
 						}
 					},
 					"dataset": {
-						"referenceName": "Json1",
+						"referenceName": "ds_cdc",
 						"type": "DatasetReference"
 					},
 					"firstRowOnly": false
