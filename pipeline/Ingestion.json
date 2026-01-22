@@ -4,6 +4,7 @@
 		"activities": [
 			{
 				"name": "last_cdc",
+				"description": "We are looking in a json file to look up for the last cdc",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -35,6 +36,7 @@
 			},
 			{
 				"name": "Totalresults",
+				"description": "Here we look into our SQL database to see if how many columns are above that number. ",
 				"type": "Script",
 				"dependsOn": [
 					{
@@ -71,6 +73,7 @@
 			},
 			{
 				"name": "If_New_Rows",
+				"description": "First we compare the number the number of the count, if it's above 0 we proceed with the if",
 				"type": "IfCondition",
 				"dependsOn": [
 					{
@@ -89,6 +92,7 @@
 					"ifTrueActivities": [
 						{
 							"name": "load",
+							"description": "We load all the fresh data from SQL server into a parquet file. ",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
@@ -143,6 +147,7 @@
 						},
 						{
 							"name": "maxCDC",
+							"description": "Here we look for the latest timestamp of the column",
 							"type": "Script",
 							"dependsOn": [
 								{
@@ -179,6 +184,7 @@
 						},
 						{
 							"name": "Copy data1",
+							"description": "The source is basically created by us. We take a empty json, we create our own dict and we than sink into our first file.",
 							"type": "Copy",
 							"dependsOn": [
 								{
